@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Task Logger - Login</title>
+    <link rel="manifest" href="manifest.json">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="apple-touch-icon.png">
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+<body>
+    <div class="container">
+        <div class="app-container">
+            <div class="app-header">
+                <h1>Task Logger</h1>
+            </div>
+            
+            <div class="app-body text-center">
+                <div class="login-container" style="display: none;">
+                    <img src="icon.png" alt="Task Logger" class="login-logo mb-4" width="120">
+                    <h2 class="mb-4">Welcome</h2>
+                    <p class="mb-4">Please sign in with your Google account to access your tasks.</p>
+                    
+                    <!-- Google Sign-In Button -->
+                    <div id="g_id_onload"
+                        data-client_id="YOUR_GOOGLE_CLIENT_ID"
+                        data-context="signin"
+                        data-callback="handleCredentialResponse"
+                        data-auto_prompt="true">
+                    </div>
+                    
+                    <div class="g_id_signin"
+                        data-type="standard"
+                        data-size="large"
+                        data-theme="filled_blue"
+                        data-text="signin_with"
+                        data-shape="rectangular"
+                        data-logo_alignment="center">
+                    </div>
+                    
+                    <div class="installation-tips mt-4">
+                        <h5>Install this app on your iPhone</h5>
+                        <ol class="text-start small">
+                            <li>Tap the <i class="bi bi-box-arrow-up"></i> Share button in Safari</li>
+                            <li>Select "Add to Home Screen"</li>
+                            <li>Tap "Add" to create an app icon</li>
+                        </ol>
+                    </div>
+                    
+                    <div id="statusMessage" class="alert mt-3 d-none"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="login.js"></script>
+</body>
+</html>
