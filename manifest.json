@@ -1,7 +1,7 @@
 {
-    "name": "Task Logger",
-    "short_name": "Tasks",
-    "description": "Log your completed tasks",
+    "name": "Házimunka napló",
+    "short_name": "Házimunka",
+    "description": "Házimunka naplózása",
     "start_url": "index.html",
     "display": "standalone",
     "background_color": "#ffffff",

@@ -1,5 +1,5 @@
 // Set the Google Apps Script web app URL
-const SCRIPT_URL = 'YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzuvfIe3lY9sqRkam4XrSbxJ5JHMbi1vX92FunQXzV_ESsqKZY6-Vuwp2Mi1gT1K8xJqQ/exec';
 
 document.addEventListener('DOMContentLoaded', () => {
     // Check if user is logged in
