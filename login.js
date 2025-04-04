@@ -72,7 +72,7 @@ async function verifyPermission(userEmail, idToken) {
         console.log("Making request to:", url); // For debugging
         
         // Fix 3: Use the fetch options in the request
-        const response = await fetch(url, fetchOptions);
+        const response = await fetch(url);
         
         // Fix 4: Check for any type of successful response, not just 200 OK
         if (!response.ok) {
