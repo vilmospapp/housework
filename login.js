@@ -62,7 +62,7 @@ async function verifyPermission(userEmail, idToken) {
             headers: {
                 'Content-Type': 'application/json'
             },
-            mode: 'cors',
+            mode: 'no-cors',
             cache: 'no-cache'
         };
 
