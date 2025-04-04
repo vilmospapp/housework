@@ -134,7 +134,14 @@ async function handleFormSubmit(event) {
         };
         
         // Send data to Google Apps Script with CORS options
-        const response = await fetch(SCRIPT_URL);
+        const response = await fetch(SCRIPT_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            cache: 'no-cache',
+            body: JSON.stringify(data)
+        });
         
         // Handle non-OK responses
         if (!response.ok) {
