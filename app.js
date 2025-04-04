@@ -41,7 +41,10 @@ document.addEventListener('DOMContentLoaded', () => {
 async function verifyPermission(userEmail, idToken) {
     try {
         // Call the Google Apps Script to verify permission
-        const response = await fetch(`${SCRIPT_URL}?action=verifyPermission&email=${encodeURIComponent(userEmail)}`);
+        const response = await fetch(`${SCRIPT_URL}?action=verifyPermission&email=${encodeURIComponent(userEmail)}`{
+            headers: {
+                "Access-Control-Allow-Origin": "*"
+            }});
         
         if (!response.ok) {
             throw new Error('Failed to verify permissions');
