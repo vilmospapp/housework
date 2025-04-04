@@ -56,17 +56,6 @@ function handleCredentialResponse(response) {
 // Function to verify if the user has permission to access the app
 async function verifyPermission(userEmail, idToken) {
     try {
-        // Fix 1: Add credentials and mode to fetch options
-        const fetchOptions = {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            mode: 'no-cors',
-            cache: 'no-cache'
-        };
-
-        // Fix 2: Ensure proper URL encoding of parameters
         const url = `${SCRIPT_URL}?action=verifyPermission&email=${encodeURIComponent(userEmail)}`;
         
         console.log("Making request to:", url); // For debugging

@@ -40,21 +40,11 @@ document.addEventListener('DOMContentLoaded', () => {
 // Function to verify if the user has permission to access the app
 async function verifyPermission(userEmail, idToken) {
     try {
-        // Use the same fetch options as in login.js
-        const fetchOptions = {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            mode: 'cors',
-            cache: 'no-cache'
-        };
-
         const url = `${SCRIPT_URL}?action=verifyPermission&email=${encodeURIComponent(userEmail)}`;
         
         console.log("Making request to:", url); // For debugging
         
-        const response = await fetch(url, fetchOptions);
+        const response = await fetch(url);
         
         if (!response.ok) {
             console.error("Response status:", response.status);
