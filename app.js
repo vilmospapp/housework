@@ -139,7 +139,7 @@ async function handleFormSubmit(event) {
             headers: {
                 'Content-Type': 'application/json'
             },
-            cache: 'no-cache',
+            mode: cors,
             body: JSON.stringify(data)
         });
         
