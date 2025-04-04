@@ -56,24 +56,46 @@ function handleCredentialResponse(response) {
 // Function to verify if the user has permission to access the app
 async function verifyPermission(userEmail, idToken) {
     try {
-        // Call the Google Apps Script to verify permission
-        const response = await fetch(`${SCRIPT_URL}?action=verifyPermission&email=${encodeURIComponent(userEmail)}`, {
+        // Fix 1: Add credentials and mode to fetch options
+        const fetchOptions = {
+            method: 'GET',
             headers: {
-                "Access-Control-Allow-Origin": "*"
-            }
-         });
+                'Content-Type': 'application/json'
+            },
+            mode: 'cors',
+            cache: 'no-cache'
+        };
+
+        // Fix 2: Ensure proper URL encoding of parameters
+        const url = `${SCRIPT_URL}?action=verifyPermission&email=${encodeURIComponent(userEmail)}`;
         
+        console.log("Making request to:", url); // For debugging
+        
+        // Fix 3: Use the fetch options in the request
+        const response = await fetch(url, fetchOptions);
+        
+        // Fix 4: Check for any type of successful response, not just 200 OK
         if (!response.ok) {
-            throw new Error('Failed to verify permissions');
+            console.error("Response status:", response.status);
+            console.error("Response text:", await response.text());
+            throw new Error(`Server responded with ${response.status}`);
         }
         
-        const data = await response.json();
-        
-        if (data.status === 'error') {
-            throw new Error(data.message || 'Permission check failed');
+        // Fix 5: Properly handle JSON parsing errors
+        try {
+            const data = await response.json();
+            
+            console.log("Response data:", data); // For debugging
+            
+            if (data.status === 'error') {
+                throw new Error(data.message || 'Permission check failed');
+            }
+            
+            return data.hasPermission === true;
+        } catch (jsonError) {
+            console.error("JSON parsing error:", jsonError);
+            throw new Error('Invalid response format from server');
         }
-        
-        return data.hasPermission === true;
     } catch (error) {
         console.error('Permission verification error:', error);
         throw new Error('Failed to verify access permissions. Please try again later.');

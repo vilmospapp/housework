@@ -40,28 +40,49 @@ document.addEventListener('DOMContentLoaded', () => {
 // Function to verify if the user has permission to access the app
 async function verifyPermission(userEmail, idToken) {
     try {
-        // Call the Google Apps Script to verify permission
-        const response = await fetch(`${SCRIPT_URL}?action=verifyPermission&email=${encodeURIComponent(userEmail)}`{
+        // Use the same fetch options as in login.js
+        const fetchOptions = {
+            method: 'GET',
             headers: {
-                "Access-Control-Allow-Origin": "*"
-            }});
+                'Content-Type': 'application/json'
+            },
+            mode: 'cors',
+            cache: 'no-cache'
+        };
+
+        const url = `${SCRIPT_URL}?action=verifyPermission&email=${encodeURIComponent(userEmail)}`;
+        
+        console.log("Making request to:", url); // For debugging
+        
+        const response = await fetch(url, fetchOptions);
         
         if (!response.ok) {
-            throw new Error('Failed to verify permissions');
+            console.error("Response status:", response.status);
+            console.error("Response text:", await response.text());
+            throw new Error(`Server responded with ${response.status}`);
         }
         
-        const data = await response.json();
-        
-        if (data.status === 'error') {
-            throw new Error(data.message || 'Permission check failed');
+        try {
+            const data = await response.json();
+            
+            console.log("Response data:", data); // For debugging
+            
+            if (data.status === 'error') {
+                throw new Error(data.message || 'Permission check failed');
+            }
+            
+            return data.hasPermission === true;
+        } catch (jsonError) {
+            console.error("JSON parsing error:", jsonError);
+            throw new Error('Invalid response format from server');
         }
-        
-        return data.hasPermission === true;
     } catch (error) {
         console.error('Permission verification error:', error);
         throw new Error('Failed to verify access permissions');
     }
 }
+
+
 
 function initializeApp() {
     // Display user information
@@ -91,6 +112,8 @@ function initializeApp() {
     logoutBtn.addEventListener('click', handleLogout);
 }
 
+
+// Update the handleFormSubmit function in app.js also
 async function handleFormSubmit(event) {
     event.preventDefault();
     
@@ -116,15 +139,27 @@ async function handleFormSubmit(event) {
             task: task,
             date: date,
             time: time,
-            email: userEmail, // This will be recorded in the spreadsheet
+            email: userEmail,
             token: localStorage.getItem('googleToken')
         };
         
-        // Send data to Google Apps Script
+        // Send data to Google Apps Script with CORS options
         const response = await fetch(SCRIPT_URL, {
             method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            mode: 'cors',
+            cache: 'no-cache',
             body: JSON.stringify(data)
         });
+        
+        // Handle non-OK responses
+        if (!response.ok) {
+            console.error("Response status:", response.status);
+            console.error("Response text:", await response.text());
+            throw new Error(`Server responded with ${response.status}`);
+        }
         
         const result = await response.json();
         
