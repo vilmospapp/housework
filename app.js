@@ -251,7 +251,7 @@ function updateSummaryUI(summary) {
     // Format the earnings as currency
     const formattedEarnings = new Intl.NumberFormat('hu-HU', { 
         style: 'currency', 
-        currency: 'Ft' 
+        currency: 'HUF' 
     }).format(summary.totalEarnings);
     
     // Update the UI elements
