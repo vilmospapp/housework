@@ -103,3 +103,32 @@ input, select {
         padding-left: 10px;
     }
 }
+
+/* User summary section styling */
+.user-summary {
+    background-color: #f8f9fb;
+    border: 1px solid #e0e0e0;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.user-summary h3 {
+    color: #28a745;
+    font-weight: bold;
+}
+
+.user-summary h4 {
+    color: #007bff;
+}
+
+#refreshSummary {
+    font-size: 0.85rem;
+}
+
+/* Animation for refresh button */
+#refreshSummary i {
+    transition: transform 0.3s ease;
+}
+
+#refreshSummary:active i {
+    transform: rotate(180deg);
+}
