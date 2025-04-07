@@ -103,6 +103,15 @@ function initializeApp() {
     // Add logout handler
     const logoutBtn = document.getElementById('logoutBtn');
     logoutBtn.addEventListener('click', handleLogout);
+
+    // Add summary refresh button handler
+    const refreshSummaryBtn = document.getElementById('refreshSummary');
+    refreshSummaryBtn.addEventListener('click', () => {
+        const userEmail = localStorage.getItem('userEmail');
+        if (userEmail) {
+            fetchUserSummary(userEmail);
+        }
+    });
 }
 
 
