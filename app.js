@@ -24,6 +24,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 // User has permission, initialize the app
                 initializeApp();
+
+                // Fetch user summary data
+                fetchUserSummary(userEmail);
             })
             .catch(error => {
                 console.error('Permission error:', error);
@@ -205,6 +208,61 @@ function handleLogout(event) {
     // Redirect to login page
     window.location.href = 'index.html';
 }
+
+// New function to fetch user summary
+async function fetchUserSummary(userEmail) {
+    try {
+        // Show loading state
+        document.getElementById('userEarnings').textContent = 'Loading...';
+        document.getElementById('userTaskCount').textContent = '...';
+        
+        // Create a URL object for better handling of parameters
+        const url = new URL(SCRIPT_URL);
+        url.searchParams.append('action', 'getUserSummary');
+        url.searchParams.append('email', userEmail);
+        
+        // Fetch summary data
+        const response = await fetch(url.toString());
+        
+        // Check if response is OK
+        if (!response.ok) {
+            throw new Error(`Server responded with status: ${response.status}`);
+        }
+        
+        // Parse the JSON response
+        const data = await response.json();
+        
+        if (data.status === 'error') {
+            throw new Error(data.message || 'Failed to get summary data');
+        }
+        
+        // Display summary data
+        updateSummaryUI(data.summary);
+    } catch (error) {
+        console.error('Error fetching user summary:', error);
+        document.getElementById('userEarnings').textContent = '$0.00';
+        document.getElementById('userTaskCount').textContent = '0';
+        document.getElementById('lastUpdated').textContent = `Error loading data: ${error.message}`;
+    }
+}
+
+// Function to update the summary UI
+function updateSummaryUI(summary) {
+    // Format the earnings as currency
+    const formattedEarnings = new Intl.NumberFormat('hu-HU', { 
+        style: 'currency', 
+        currency: 'Ft' 
+    }).format(summary.totalEarnings);
+    
+    // Update the UI elements
+    document.getElementById('userEarnings').textContent = formattedEarnings;
+    document.getElementById('userTaskCount').textContent = summary.taskCount;
+    
+    // Format the last updated time
+    const lastUpdated = new Date(summary.lastUpdated);
+    document.getElementById('lastUpdated').textContent = `Frissítve: ${lastUpdated.toLocaleString()}`;
+}
+
 
 // For PWA support
 if ('serviceWorker' in navigator) {

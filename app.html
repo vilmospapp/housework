@@ -64,6 +64,25 @@
                 </form>
                 
                 <div class="mt-3 alert d-none" id="statusMessage"></div>
+
+                <!-- New User Summary Section -->
+                <div class="user-summary mt-4 p-3 rounded">
+                    <h5 class="text-center mb-3">Összesítésed</h5>
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <p class="mb-1">Teljes összeg:</p>
+                            <h3 id="userEarnings">0Ft</h3>
+                        </div>
+                        <div class="text-end">
+                            <p class="mb-1">Elvégzett munkák:</p>
+                            <h4 id="userTaskCount">0</h4>
+                        </div>
+                    </div>
+                    <p class="text-center mt-2 small text-muted" id="lastUpdated"></p>
+                    <button id="refreshSummary" class="btn btn-sm btn-outline-secondary w-100 mt-2">
+                        <i class="bi bi-arrow-clockwise"></i> Frissítés
+                    </button>
+                </div>
             </div>
         </div>
     </div>
