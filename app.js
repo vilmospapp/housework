@@ -413,12 +413,24 @@ async function fetchUserRecords(userEmail) {
         url.searchParams.append('email', userEmail);
         url.searchParams.append('token', localStorage.getItem('googleToken') || '');
 
-        const response = await fetch(url.toString());
+        const response = await fetch(url.toString(), {
+            method: 'GET',
+            redirect: 'follow',
+            headers: {
+                'Accept': 'application/json'
+            }
+        });
         if (!response.ok) {
             throw new Error(`Server responded with status: ${response.status}`);
         }
 
-        const data = await response.json();
+        const rawText = await response.text();
+        let data;
+        try {
+            data = JSON.parse(rawText);
+        } catch (parseError) {
+            throw new Error(`Invalid JSON response: ${rawText.slice(0, 140)}`);
+        }
         if (data.status === 'error') {
             throw new Error(data.message || 'Failed to get record data');
         }
