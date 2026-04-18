@@ -299,6 +299,19 @@ function setRecordsLoading(isLoading) {
     }
 }
 
+function setRecordsStatus(message, isError = false) {
+    const statusEl = document.getElementById('recordsStatusMessage');
+    if (!message) {
+        statusEl.classList.add('d-none');
+        statusEl.textContent = '';
+        statusEl.classList.remove('text-danger');
+        return;
+    }
+    statusEl.textContent = message;
+    statusEl.classList.remove('d-none');
+    statusEl.classList.toggle('text-danger', isError);
+}
+
 function getTaskLabel(taskValue) {
     const taskSelect = document.getElementById('taskSelect');
     const option = Array.from(taskSelect.options).find(item => item.value === taskValue);
@@ -306,6 +319,13 @@ function getTaskLabel(taskValue) {
 }
 
 function normalizeRecord(record) {
+    if (Array.isArray(record)) {
+        // Expected order: [timestamp?, task, date, time, email?]
+        const task = record[1] || record[0] || '';
+        const date = record[2] || '';
+        const time = record[3] || '';
+        return { task: String(task || ''), date: String(date || ''), time: String(time || '') };
+    }
     const task = record.task || record.taskId || record.taskType || '';
     const date = record.date || record.taskDate || '';
     const time = record.time || record.taskTime || '';
@@ -386,10 +406,12 @@ async function fetchUserRecords(userEmail) {
     try {
         setRecordsLoading(true);
         document.getElementById('recordsEmptyState').classList.add('d-none');
+        setRecordsStatus('');
 
         const url = new URL(SCRIPT_URL);
         url.searchParams.append('action', 'getUserRecords');
         url.searchParams.append('email', userEmail);
+        url.searchParams.append('token', localStorage.getItem('googleToken') || '');
 
         const response = await fetch(url.toString());
         if (!response.ok) {
@@ -401,13 +423,20 @@ async function fetchUserRecords(userEmail) {
             throw new Error(data.message || 'Failed to get record data');
         }
 
-        const records = Array.isArray(data.records) ? data.records : [];
+        const records =
+            (Array.isArray(data.records) && data.records) ||
+            (Array.isArray(data.items) && data.items) ||
+            (Array.isArray(data.rows) && data.rows) ||
+            [];
+
         allUserRecords = records.map(normalizeRecord);
         renderRecords();
+        setRecordsStatus(`Betöltve: ${allUserRecords.length} rekord`);
     } catch (error) {
         console.error('Error fetching user records:', error);
         allUserRecords = [];
         renderRecords();
+        setRecordsStatus(`Hiba rekordok betöltésekor: ${error.message}`, true);
     } finally {
         setRecordsLoading(false);
     }
