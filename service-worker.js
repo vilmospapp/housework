@@ -1,4 +1,4 @@
-const CACHE_NAME = 'task-logger-v1';
+const CACHE_NAME = 'task-logger-v2';
 const urlsToCache = [
   '/',
   '/index.html',
@@ -21,6 +21,7 @@ self.addEventListener('install', event => {
         return cache.addAll(urlsToCache);
       })
   );
+  self.skipWaiting();
 });
 
 self.addEventListener('fetch', event => {
@@ -82,4 +83,5 @@ self.addEventListener('activate', event => {
       );
     })
   );
+  self.clients.claim();
 });
