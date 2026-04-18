@@ -320,6 +320,47 @@ function setRecordsDebug(debugInfo) {
     debugOutput.textContent = JSON.stringify(debugInfo, null, 2);
 }
 
+/**
+ * Apps Script responses vary: { records }, { data: { records } }, or a top-level array.
+ * Editor tests bypass the web app; deployed POST may only fill e.parameter if query string is used.
+ */
+function extractRecordsArray(data) {
+    if (!data) {
+        return { records: [], sourceKey: 'none' };
+    }
+    if (Array.isArray(data)) {
+        return { records: data, sourceKey: 'root' };
+    }
+    if (typeof data !== 'object') {
+        return { records: [], sourceKey: 'none' };
+    }
+
+    const tryKeys = [
+        ['records', data.records],
+        ['items', data.items],
+        ['rows', data.rows],
+        ['data.records', data.data && data.data.records],
+        ['data', Array.isArray(data.data) ? data.data : null],
+        ['result.records', data.result && data.result.records],
+        ['result', Array.isArray(data.result) ? data.result : null]
+    ];
+
+    for (const [name, val] of tryKeys) {
+        if (Array.isArray(val)) {
+            return { records: val, sourceKey: name };
+        }
+    }
+
+    for (const key of Object.keys(data)) {
+        const val = data[key];
+        if (Array.isArray(val) && val.length && (typeof val[0] === 'object' || Array.isArray(val[0]))) {
+            return { records: val, sourceKey: key };
+        }
+    }
+
+    return { records: [], sourceKey: 'none' };
+}
+
 function getTaskLabel(taskValue) {
     const taskSelect = document.getElementById('taskSelect');
     const option = Array.from(taskSelect.options).find(item => item.value === taskValue);
@@ -425,21 +466,34 @@ function renderRecords() {
 }
 
 async function fetchUserRecords(userEmail) {
+    const storedEmail = localStorage.getItem('userEmail');
+    const token = localStorage.getItem('googleToken');
+
     try {
         setRecordsLoading(true);
         document.getElementById('recordsEmptyState').classList.add('d-none');
         setRecordsStatus('');
 
-        // Use POST only. Cross-origin GET to script.google.com often fails CORS (redirects
-        // omit Access-Control-Allow-Origin). POST matches the working task-save flow.
+        // Use POST only (CORS-safe). Put action/email on the URL so Apps Script
+        // doPost(e) sees e.parameter.action / e.parameter.email even if JSON body is ignored.
         const postPayload = {
             action: 'getUserRecords',
             email: userEmail,
-            token: localStorage.getItem('googleToken')
+            token: token
         };
-        
-        const response = await fetch(SCRIPT_URL, {
+
+        const url = new URL(SCRIPT_URL);
+        url.searchParams.set('action', 'getUserRecords');
+        url.searchParams.set('email', userEmail);
+        if (token) {
+            url.searchParams.set('token', token);
+        }
+
+        const response = await fetch(url.toString(), {
             method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
             body: JSON.stringify(postPayload)
         });
 
@@ -459,34 +513,31 @@ async function fetchUserRecords(userEmail) {
             throw new Error(data.message || 'Failed to get record data');
         }
 
-        const records =
-            (Array.isArray(data.records) && data.records) ||
-            (Array.isArray(data.items) && data.items) ||
-            (Array.isArray(data.rows) && data.rows) ||
-            [];
+        const { records, sourceKey } = extractRecordsArray(data);
 
         allUserRecords = records.map(normalizeRecord);
         renderRecords();
         setRecordsStatus(`Betöltve: ${allUserRecords.length} rekord`);
         setRecordsDebug({
             stage: 'fetchUserRecords:success',
-            request: {
+            hint: 'If sourceKey is none but raw shows rows, adjust Apps Script JSON shape or column mapping.',
+            emailCheck: {
+                argumentUserEmail: userEmail,
+                localStorageUserEmail: storedEmail,
+                emailsMatch: !storedEmail || storedEmail === userEmail
+            },
+            requestUrlHadParams: {
                 action: 'getUserRecords',
                 email: userEmail
             },
             responseStatus: response.status,
             responseKeys: Object.keys(data || {}),
-            sourceArrayType: Array.isArray(data.records)
-                ? 'records'
-                : Array.isArray(data.items)
-                    ? 'items'
-                    : Array.isArray(data.rows)
-                        ? 'rows'
-                        : 'none',
+            recordsSourceKey: sourceKey,
             sourceArrayLength: records.length,
             normalizedLength: allUserRecords.length,
             firstRawRows: records.slice(0, 5),
-            firstNormalizedRows: allUserRecords.slice(0, 5)
+            firstNormalizedRows: allUserRecords.slice(0, 5),
+            rawResponsePreview: rawText.length > 2500 ? `${rawText.slice(0, 2500)}…` : rawText
         });
     } catch (error) {
         console.error('Error fetching user records:', error);
@@ -495,6 +546,11 @@ async function fetchUserRecords(userEmail) {
         setRecordsStatus(`Hiba rekordok betöltésekor: ${error.message}`, true);
         setRecordsDebug({
             stage: 'fetchUserRecords:error',
+            emailCheck: {
+                argumentUserEmail: userEmail,
+                localStorageUserEmail: storedEmail,
+                emailsMatch: !storedEmail || storedEmail === userEmail
+            },
             request: {
                 action: 'getUserRecords',
                 email: userEmail
