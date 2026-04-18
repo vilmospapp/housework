@@ -415,7 +415,7 @@ async function fetchUserRecords(userEmail) {
             email: userEmail,
             token: localStorage.getItem('googleToken')
         };
-
+        
         const response = await fetch(SCRIPT_URL, {
             method: 'POST',
             body: JSON.stringify(postPayload)
