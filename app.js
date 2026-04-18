@@ -312,6 +312,14 @@ function setRecordsStatus(message, isError = false) {
     statusEl.classList.toggle('text-danger', isError);
 }
 
+function setRecordsDebug(debugInfo) {
+    const debugOutput = document.getElementById('recordsDebugOutput');
+    if (!debugOutput) {
+        return;
+    }
+    debugOutput.textContent = JSON.stringify(debugInfo, null, 2);
+}
+
 function getTaskLabel(taskValue) {
     const taskSelect = document.getElementById('taskSelect');
     const option = Array.from(taskSelect.options).find(item => item.value === taskValue);
@@ -389,6 +397,12 @@ function renderRecords() {
     if (!records.length) {
         tableBody.innerHTML = '';
         emptyState.classList.remove('d-none');
+        setRecordsDebug({
+            stage: 'renderRecords',
+            totalFetchedRecords: allUserRecords.length,
+            filteredRecords: 0,
+            filters: { taskFilter, sortBy, dateFrom, dateTo }
+        });
         return;
     }
 
@@ -400,6 +414,14 @@ function renderRecords() {
             <td>${record.time || '-'}</td>
         </tr>
     `).join('');
+
+    setRecordsDebug({
+        stage: 'renderRecords',
+        totalFetchedRecords: allUserRecords.length,
+        filteredRecords: records.length,
+        filters: { taskFilter, sortBy, dateFrom, dateTo },
+        firstRenderedRows: records.slice(0, 5)
+    });
 }
 
 async function fetchUserRecords(userEmail) {
@@ -446,11 +468,39 @@ async function fetchUserRecords(userEmail) {
         allUserRecords = records.map(normalizeRecord);
         renderRecords();
         setRecordsStatus(`Betöltve: ${allUserRecords.length} rekord`);
+        setRecordsDebug({
+            stage: 'fetchUserRecords:success',
+            request: {
+                action: 'getUserRecords',
+                email: userEmail
+            },
+            responseStatus: response.status,
+            responseKeys: Object.keys(data || {}),
+            sourceArrayType: Array.isArray(data.records)
+                ? 'records'
+                : Array.isArray(data.items)
+                    ? 'items'
+                    : Array.isArray(data.rows)
+                        ? 'rows'
+                        : 'none',
+            sourceArrayLength: records.length,
+            normalizedLength: allUserRecords.length,
+            firstRawRows: records.slice(0, 5),
+            firstNormalizedRows: allUserRecords.slice(0, 5)
+        });
     } catch (error) {
         console.error('Error fetching user records:', error);
         allUserRecords = [];
         renderRecords();
         setRecordsStatus(`Hiba rekordok betöltésekor: ${error.message}`, true);
+        setRecordsDebug({
+            stage: 'fetchUserRecords:error',
+            request: {
+                action: 'getUserRecords',
+                email: userEmail
+            },
+            errorMessage: error.message
+        });
     } finally {
         setRecordsLoading(false);
     }
