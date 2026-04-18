@@ -499,6 +499,7 @@ async function fetchUserRecords(userEmail) {
         let data;
         try {
             data = JSON.parse(rawText);
+            console.log("Data:", rawText);
         } catch (parseError) {
             throw new Error(`Invalid JSON: ${rawText.slice(0, 140)}`);
         }
