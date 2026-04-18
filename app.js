@@ -474,25 +474,19 @@ async function fetchUserRecords(userEmail) {
         document.getElementById('recordsEmptyState').classList.add('d-none');
         setRecordsStatus('');
 
-        // Use POST only (CORS-safe). Put action/email on the URL so Apps Script
-        // doPost(e) sees e.parameter.action / e.parameter.email even if JSON body is ignored.
+        // POST only. Do NOT put the JWT in the query string (logs, Referer, history).
+        // Use text/plain so the request stays a "simple" cross-origin POST and avoids
+        // a preflight OPTIONS that Google Apps Script web apps often do not handle.
         const postPayload = {
             action: 'getUserRecords',
             email: userEmail,
             token: token
         };
 
-        const url = new URL(SCRIPT_URL);
-        url.searchParams.set('action', 'getUserRecords');
-        url.searchParams.set('email', userEmail);
-        if (token) {
-            url.searchParams.set('token', token);
-        }
-
-        const response = await fetch(url.toString(), {
+        const response = await fetch(SCRIPT_URL, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'text/plain;charset=UTF-8'
             },
             body: JSON.stringify(postPayload)
         });
@@ -526,10 +520,7 @@ async function fetchUserRecords(userEmail) {
                 localStorageUserEmail: storedEmail,
                 emailsMatch: !storedEmail || storedEmail === userEmail
             },
-            requestUrlHadParams: {
-                action: 'getUserRecords',
-                email: userEmail
-            },
+            requestNote: 'POST body only; Content-Type text/plain; token not in URL',
             responseStatus: response.status,
             responseKeys: Object.keys(data || {}),
             recordsSourceKey: sourceKey,
