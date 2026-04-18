@@ -483,7 +483,13 @@ async function fetchUserRecords(userEmail) {
             token: token
         };
 
-        const response = await fetch(SCRIPT_URL, {
+        // Query string so Apps Script always has e.parameter.action / e.parameter.email
+        // even if JSON body parsing differs; avoids falling through to "save task" path.
+        const url = new URL(SCRIPT_URL);
+        url.searchParams.set('action', 'getUserRecords');
+        url.searchParams.set('email', userEmail);
+
+        const response = await fetch(url.toString(), {
             method: 'POST',
             headers: {
                 'Content-Type': 'text/plain;charset=UTF-8'
