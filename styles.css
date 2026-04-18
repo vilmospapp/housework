@@ -132,3 +132,22 @@ input, select {
 #refreshSummary:active i {
     transform: rotate(180deg);
 }
+
+.records-section {
+    background-color: #ffffff;
+    border: 1px solid #e9ecef;
+}
+
+.records-section .form-select-sm,
+.records-section .form-control-sm {
+    height: 38px;
+    font-size: 14px;
+}
+
+.records-section .btn-sm {
+    height: auto;
+}
+
+.records-section table {
+    font-size: 0.9rem;
+}

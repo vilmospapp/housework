@@ -1,5 +1,6 @@
 // Set the Google Apps Script web app URL
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbze7-KixhxIXiTEEt65gacCiHnrNurYwAgF1M1N6wcj3v0N3VJc1NK_20rcBPOA-48RiA/exec';
+let allUserRecords = [];
 
 document.addEventListener('DOMContentLoaded', () => {
     // Check if user is logged in
@@ -27,6 +28,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 // Fetch user summary data
                 fetchUserSummary(userEmail);
+                fetchUserRecords(userEmail);
             })
             .catch(error => {
                 console.error('Permission error:', error);
@@ -112,6 +114,19 @@ function initializeApp() {
             fetchUserSummary(userEmail);
         }
     });
+
+    const refreshRecordsBtn = document.getElementById('refreshRecords');
+    refreshRecordsBtn.addEventListener('click', () => {
+        const userEmail = localStorage.getItem('userEmail');
+        if (userEmail) {
+            fetchUserRecords(userEmail);
+        }
+    });
+
+    ['recordTaskFilter', 'recordSortBy', 'recordDateFrom', 'recordDateTo'].forEach(id => {
+        const el = document.getElementById(id);
+        el.addEventListener('change', renderRecords);
+    });
 }
 
 
@@ -180,6 +195,9 @@ async function handleFormSubmit(event) {
             setTimeout(() => {
                 statusMessage.classList.add('d-none');
             }, 3000);
+
+            fetchUserSummary(userEmail);
+            fetchUserRecords(userEmail);
         } else {
             throw new Error(result.message || 'Failed to save data');
         }
@@ -270,6 +288,129 @@ function updateSummaryUI(summary) {
     // Format the last updated time
     const lastUpdated = new Date(summary.lastUpdated);
     document.getElementById('lastUpdated').textContent = `Frissítve: ${lastUpdated.toLocaleString()}`;
+}
+
+function setRecordsLoading(isLoading) {
+    const loadingState = document.getElementById('recordsLoadingState');
+    if (isLoading) {
+        loadingState.classList.remove('d-none');
+    } else {
+        loadingState.classList.add('d-none');
+    }
+}
+
+function getTaskLabel(taskValue) {
+    const taskSelect = document.getElementById('taskSelect');
+    const option = Array.from(taskSelect.options).find(item => item.value === taskValue);
+    return option ? option.textContent : taskValue || '-';
+}
+
+function normalizeRecord(record) {
+    const task = record.task || record.taskId || record.taskType || '';
+    const date = record.date || record.taskDate || '';
+    const time = record.time || record.taskTime || '';
+    return { task, date, time };
+}
+
+function getRecordTimestamp(record) {
+    if (!record.date) {
+        return 0;
+    }
+    const value = `${record.date}T${record.time || '00:00'}`;
+    const timestamp = new Date(value).getTime();
+    return Number.isNaN(timestamp) ? 0 : timestamp;
+}
+
+function formatDisplayDate(dateStr) {
+    if (!dateStr) {
+        return '-';
+    }
+    const date = new Date(`${dateStr}T00:00:00`);
+    return Number.isNaN(date.getTime()) ? dateStr : date.toLocaleDateString('hu-HU');
+}
+
+function renderRecords() {
+    const taskFilter = document.getElementById('recordTaskFilter').value;
+    const sortBy = document.getElementById('recordSortBy').value;
+    const dateFrom = document.getElementById('recordDateFrom').value;
+    const dateTo = document.getElementById('recordDateTo').value;
+    const tableBody = document.getElementById('recordsTableBody');
+    const emptyState = document.getElementById('recordsEmptyState');
+
+    let records = [...allUserRecords];
+
+    if (taskFilter !== 'all') {
+        records = records.filter(record => record.task === taskFilter);
+    }
+
+    if (dateFrom) {
+        records = records.filter(record => record.date && record.date >= dateFrom);
+    }
+
+    if (dateTo) {
+        records = records.filter(record => record.date && record.date <= dateTo);
+    }
+
+    records.sort((a, b) => {
+        if (sortBy === 'date-asc') {
+            return getRecordTimestamp(a) - getRecordTimestamp(b);
+        }
+        if (sortBy === 'date-desc') {
+            return getRecordTimestamp(b) - getRecordTimestamp(a);
+        }
+        const labelA = getTaskLabel(a.task).toLocaleLowerCase('hu-HU');
+        const labelB = getTaskLabel(b.task).toLocaleLowerCase('hu-HU');
+        if (sortBy === 'task-asc') {
+            return labelA.localeCompare(labelB, 'hu-HU');
+        }
+        return labelB.localeCompare(labelA, 'hu-HU');
+    });
+
+    if (!records.length) {
+        tableBody.innerHTML = '';
+        emptyState.classList.remove('d-none');
+        return;
+    }
+
+    emptyState.classList.add('d-none');
+    tableBody.innerHTML = records.map(record => `
+        <tr>
+            <td>${getTaskLabel(record.task)}</td>
+            <td>${formatDisplayDate(record.date)}</td>
+            <td>${record.time || '-'}</td>
+        </tr>
+    `).join('');
+}
+
+async function fetchUserRecords(userEmail) {
+    try {
+        setRecordsLoading(true);
+        document.getElementById('recordsEmptyState').classList.add('d-none');
+
+        const url = new URL(SCRIPT_URL);
+        url.searchParams.append('action', 'getUserRecords');
+        url.searchParams.append('email', userEmail);
+
+        const response = await fetch(url.toString());
+        if (!response.ok) {
+            throw new Error(`Server responded with status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        if (data.status === 'error') {
+            throw new Error(data.message || 'Failed to get record data');
+        }
+
+        const records = Array.isArray(data.records) ? data.records : [];
+        allUserRecords = records.map(normalizeRecord);
+        renderRecords();
+    } catch (error) {
+        console.error('Error fetching user records:', error);
+        allUserRecords = [];
+        renderRecords();
+    } finally {
+        setRecordsLoading(false);
+    }
 }
 
 
