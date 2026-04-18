@@ -408,50 +408,29 @@ async function fetchUserRecords(userEmail) {
         document.getElementById('recordsEmptyState').classList.add('d-none');
         setRecordsStatus('');
 
-        const url = new URL(SCRIPT_URL);
-        url.searchParams.append('action', 'getUserRecords');
-        url.searchParams.append('email', userEmail);
-        let response;
-        let rawText = '';
-        let data;
-        let lastError;
+        // Use POST only. Cross-origin GET to script.google.com often fails CORS (redirects
+        // omit Access-Control-Allow-Origin). POST matches the working task-save flow.
+        const postPayload = {
+            action: 'getUserRecords',
+            email: userEmail,
+            token: localStorage.getItem('googleToken')
+        };
 
-        // Attempt 1: simple GET (same style as other working requests in app)
-        try {
-            response = await fetch(url.toString());
-            if (!response.ok) {
-                throw new Error(`GET failed with status: ${response.status}`);
-            }
-            rawText = await response.text();
-            data = JSON.parse(rawText);
-        } catch (error) {
-            lastError = error;
+        const response = await fetch(SCRIPT_URL, {
+            method: 'POST',
+            body: JSON.stringify(postPayload)
+        });
+
+        if (!response.ok) {
+            throw new Error(`Server responded with status: ${response.status}`);
         }
 
-        // Attempt 2: POST fallback (some deployments only allow this path reliably)
-        if (!data) {
-            const postPayload = {
-                action: 'getUserRecords',
-                email: userEmail,
-                token: localStorage.getItem('googleToken')
-            };
-
-            try {
-                response = await fetch(SCRIPT_URL, {
-                    method: 'POST',
-                    body: JSON.stringify(postPayload)
-                });
-                if (!response.ok) {
-                    throw new Error(`POST failed with status: ${response.status}`);
-                }
-                rawText = await response.text();
-                data = JSON.parse(rawText);
-            } catch (error) {
-                throw new Error(
-                    `Network request failed (${error.message || 'unknown'}). ` +
-                    `Previous GET error: ${lastError ? lastError.message : 'none'}`
-                );
-            }
+        const rawText = await response.text();
+        let data;
+        try {
+            data = JSON.parse(rawText);
+        } catch (parseError) {
+            throw new Error(`Invalid JSON: ${rawText.slice(0, 140)}`);
         }
 
         if (data.status === 'error') {
