@@ -474,22 +474,23 @@ async function fetchUserRecords(userEmail) {
         document.getElementById('recordsEmptyState').classList.add('d-none');
         setRecordsStatus('');
 
-        // Form POST: Apps Script fills e.parameter from application/x-www-form-urlencoded
-        // before any JSON.parse. Your doPost must check e.parameter.action === 'getUserRecords'
-        // BEFORE parsing JSON for saves, or it will always fall through to "Data saved".
-        const formBody = new URLSearchParams();
-        formBody.set('action', 'getUserRecords');
-        formBody.set('email', userEmail);
-        if (token) {
-            formBody.set('token', token);
-        }
+        // JSON body + text/plain (simple CORS POST). Put only action on the URL so
+        // doPost can branch on e.parameter.action before JSON.parse; email+token stay in body.
+        const postPayload = {
+            action: 'getUserRecords',
+            email: userEmail,
+            token: token
+        };
 
-        const response = await fetch(SCRIPT_URL, {
+        const url = new URL(SCRIPT_URL);
+        url.searchParams.set('action', 'getUserRecords');
+
+        const response = await fetch(url.toString(), {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'
+                'Content-Type': 'text/plain;charset=UTF-8'
             },
-            body: formBody.toString(),
+            body: JSON.stringify(postPayload),
             cache: 'no-store'
         });
 
@@ -501,9 +502,16 @@ async function fetchUserRecords(userEmail) {
         let data;
         try {
             data = JSON.parse(rawText);
-            console.log("Data:", rawText);
         } catch (parseError) {
-            throw new Error(`Invalid JSON: ${rawText.slice(0, 140)}`);
+            const head = String(rawText).slice(0, 120);
+            if (/^action=/.test(String(rawText).trim())) {
+                throw new Error(
+                    'Server returned form data as the response body (not JSON). ' +
+                    'Fix Code.gs: getUserRecords / doPost must return jsonResponse({...}), ' +
+                    'never return e.postData.contents or the raw request string.'
+                );
+            }
+            throw new Error(`Invalid JSON (first 120 chars): ${head}`);
         }
 
         if (data.status === 'error') {
@@ -531,7 +539,7 @@ async function fetchUserRecords(userEmail) {
                 localStorageUserEmail: storedEmail,
                 emailsMatch: !storedEmail || storedEmail === userEmail
             },
-            requestNote: 'POST application/x-www-form-urlencoded (action, email, token in body)',
+            requestNote: 'POST ?action=getUserRecords + JSON body (text/plain); token only in body',
             responseStatus: response.status,
             responseKeys: Object.keys(data || {}),
             recordsSourceKey: sourceKey,
