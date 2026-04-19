@@ -478,12 +478,14 @@ async function fetchUserRecords(userEmail) {
         // doPost can branch on e.parameter.action before JSON.parse; email+token stay in body.
         const postPayload = {
             action: 'getUserRecords',
+            recordsQuery: true,
             email: userEmail,
             token: token
         };
 
         const url = new URL(SCRIPT_URL);
         url.searchParams.set('action', 'getUserRecords');
+        url.searchParams.set('records', '1');
 
         const response = await fetch(url.toString(), {
             method: 'POST',
@@ -520,9 +522,10 @@ async function fetchUserRecords(userEmail) {
 
         if (data.message === 'Data saved successfully' && !Array.isArray(data.records)) {
             throw new Error(
-                'Server ran the save path instead of getUserRecords. In Code.gs doPost, ' +
-                'check e.parameter.action === "getUserRecords" before JSON.parse(e.postData.contents), ' +
-                'and redeploy a new web app version.'
+                'A szerver a mentési ágat futtatta (Data saved), nem a listázást. Code.gs: a doPost() ' +
+                'elején ágazd el getUserRecords-ra (e.parameter.action / e.parameter.records vagy ' +
+                'JSON: action / recordsQuery), majd Deploy → új verzió. Ellenőrizd, hogy a SCRIPT_URL ' +
+                'ugyanahhoz a deploymenthez tartozik, amit szerkesztesz.'
             );
         }
 
