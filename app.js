@@ -1,5 +1,5 @@
 // Set the Google Apps Script web app URL
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzva89z4TQmNLrgpRIeYlXGmd_oWefeo7m5CV9sL2i4se_AGNX3orG1ET2r4e3pCLh2JQ/exec'
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxzTKqpjxkh3YkYxfUf-ijqlFkCSA8NZ5OfLOyuZ7iTdUKMGsfSlxUNVUyzgD4V0yVCGA/exec'
 ;
 let allUserRecords = [];
 
