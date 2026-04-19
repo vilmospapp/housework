@@ -474,27 +474,23 @@ async function fetchUserRecords(userEmail) {
         document.getElementById('recordsEmptyState').classList.add('d-none');
         setRecordsStatus('');
 
-        // POST only. Do NOT put the JWT in the query string (logs, Referer, history).
-        // Use text/plain so the request stays a "simple" cross-origin POST and avoids
-        // a preflight OPTIONS that Google Apps Script web apps often do not handle.
-        const postPayload = {
-            action: 'getUserRecords',
-            email: userEmail,
-            token: token
-        };
+        // Form POST: Apps Script fills e.parameter from application/x-www-form-urlencoded
+        // before any JSON.parse. Your doPost must check e.parameter.action === 'getUserRecords'
+        // BEFORE parsing JSON for saves, or it will always fall through to "Data saved".
+        const formBody = new URLSearchParams();
+        formBody.set('action', 'getUserRecords');
+        formBody.set('email', userEmail);
+        if (token) {
+            formBody.set('token', token);
+        }
 
-        // Query string so Apps Script always has e.parameter.action / e.parameter.email
-        // even if JSON body parsing differs; avoids falling through to "save task" path.
-        const url = new URL(SCRIPT_URL);
-        url.searchParams.set('action', 'getUserRecords');
-        url.searchParams.set('email', userEmail);
-
-        const response = await fetch(url.toString(), {
+        const response = await fetch(SCRIPT_URL, {
             method: 'POST',
             headers: {
-                'Content-Type': 'text/plain;charset=UTF-8'
+                'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'
             },
-            body: JSON.stringify(postPayload)
+            body: formBody.toString(),
+            cache: 'no-store'
         });
 
         if (!response.ok) {
@@ -514,6 +510,14 @@ async function fetchUserRecords(userEmail) {
             throw new Error(data.message || 'Failed to get record data');
         }
 
+        if (data.message === 'Data saved successfully' && !Array.isArray(data.records)) {
+            throw new Error(
+                'Server ran the save path instead of getUserRecords. In Code.gs doPost, ' +
+                'check e.parameter.action === "getUserRecords" before JSON.parse(e.postData.contents), ' +
+                'and redeploy a new web app version.'
+            );
+        }
+
         const { records, sourceKey } = extractRecordsArray(data);
 
         allUserRecords = records.map(normalizeRecord);
@@ -527,7 +531,7 @@ async function fetchUserRecords(userEmail) {
                 localStorageUserEmail: storedEmail,
                 emailsMatch: !storedEmail || storedEmail === userEmail
             },
-            requestNote: 'POST body only; Content-Type text/plain; token not in URL',
+            requestNote: 'POST application/x-www-form-urlencoded (action, email, token in body)',
             responseStatus: response.status,
             responseKeys: Object.keys(data || {}),
             recordsSourceKey: sourceKey,

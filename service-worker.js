@@ -1,4 +1,4 @@
-const CACHE_NAME = 'task-logger-v1';
+const CACHE_NAME = 'task-logger-v3';
 const urlsToCache = [
   '/',
   '/index.html',
