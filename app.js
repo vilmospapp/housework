@@ -43,6 +43,19 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
+document.getElementById("recordsToggleHeader").addEventListener("click", function () {
+    const content = document.getElementById("recordsContent");
+    const icon = document.getElementById("recordsToggleIcon");
+
+    if (content.style.display === "none") {
+        content.style.display = "block";
+        icon.textContent = "▲";
+    } else {
+        content.style.display = "none";
+        icon.textContent = "▼";
+    }
+});
+
 // Function to verify if the user has permission to access the app
 async function verifyPermission(userEmail, idToken) {
     try {
