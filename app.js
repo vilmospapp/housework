@@ -1,5 +1,6 @@
 // Set the Google Apps Script web app URL
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbze7-KixhxIXiTEEt65gacCiHnrNurYwAgF1M1N6wcj3v0N3VJc1NK_20rcBPOA-48RiA/exec';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzva89z4TQmNLrgpRIeYlXGmd_oWefeo7m5CV9sL2i4se_AGNX3orG1ET2r4e3pCLh2JQ/exec'
+;
 let allUserRecords = [];
 
 document.addEventListener('DOMContentLoaded', () => {
