@@ -314,53 +314,41 @@ function setRecordsStatus(message, isError = false) {
     statusEl.classList.toggle('text-danger', isError);
 }
 
-function setRecordsDebug(debugInfo) {
-    const debugOutput = document.getElementById('recordsDebugOutput');
-    if (!debugOutput) {
-        return;
-    }
-    debugOutput.textContent = JSON.stringify(debugInfo, null, 2);
-}
-
-/**
- * Apps Script responses vary: { records }, { data: { records } }, or a top-level array.
- * Editor tests bypass the web app; deployed POST may only fill e.parameter if query string is used.
- */
 function extractRecordsArray(data) {
     if (!data) {
-        return { records: [], sourceKey: 'none' };
+        return { records: [] };
     }
     if (Array.isArray(data)) {
-        return { records: data, sourceKey: 'root' };
+        return { records: data };
     }
     if (typeof data !== 'object') {
-        return { records: [], sourceKey: 'none' };
+        return { records: [] };
     }
 
     const tryKeys = [
-        ['records', data.records],
-        ['items', data.items],
-        ['rows', data.rows],
-        ['data.records', data.data && data.data.records],
-        ['data', Array.isArray(data.data) ? data.data : null],
-        ['result.records', data.result && data.result.records],
-        ['result', Array.isArray(data.result) ? data.result : null]
+        data.records,
+        data.items,
+        data.rows,
+        data.data && data.data.records,
+        Array.isArray(data.data) ? data.data : null,
+        data.result && data.result.records,
+        Array.isArray(data.result) ? data.result : null
     ];
 
-    for (const [name, val] of tryKeys) {
+    for (const val of tryKeys) {
         if (Array.isArray(val)) {
-            return { records: val, sourceKey: name };
+            return { records: val };
         }
     }
 
     for (const key of Object.keys(data)) {
         const val = data[key];
         if (Array.isArray(val) && val.length && (typeof val[0] === 'object' || Array.isArray(val[0]))) {
-            return { records: val, sourceKey: key };
+            return { records: val };
         }
     }
 
-    return { records: [], sourceKey: 'none' };
+    return { records: [] };
 }
 
 function getTaskLabel(taskValue) {
@@ -440,12 +428,6 @@ function renderRecords() {
     if (!records.length) {
         tableBody.innerHTML = '';
         emptyState.classList.remove('d-none');
-        setRecordsDebug({
-            stage: 'renderRecords',
-            totalFetchedRecords: allUserRecords.length,
-            filteredRecords: 0,
-            filters: { taskFilter, sortBy, dateFrom, dateTo }
-        });
         return;
     }
 
@@ -457,18 +439,9 @@ function renderRecords() {
             <td>${record.time || '-'}</td>
         </tr>
     `).join('');
-
-    setRecordsDebug({
-        stage: 'renderRecords',
-        totalFetchedRecords: allUserRecords.length,
-        filteredRecords: records.length,
-        filters: { taskFilter, sortBy, dateFrom, dateTo },
-        firstRenderedRows: records.slice(0, 5)
-    });
 }
 
 async function fetchUserRecords(userEmail) {
-    const storedEmail = localStorage.getItem('userEmail');
     const token = localStorage.getItem('googleToken');
 
     try {
@@ -507,15 +480,10 @@ async function fetchUserRecords(userEmail) {
         try {
             data = JSON.parse(rawText);
         } catch (parseError) {
-            const head = String(rawText).slice(0, 120);
             if (/^action=/.test(String(rawText).trim())) {
-                throw new Error(
-                    'Server returned form data as the response body (not JSON). ' +
-                    'Fix Code.gs: getUserRecords / doPost must return jsonResponse({...}), ' +
-                    'never return e.postData.contents or the raw request string.'
-                );
+                throw new Error('A szerver nem JSON választ adott vissza.');
             }
-            throw new Error(`Invalid JSON (first 120 chars): ${head}`);
+            throw new Error('Érvénytelen válasz a szervertől.');
         }
 
         if (data.status === 'error') {
@@ -523,55 +491,19 @@ async function fetchUserRecords(userEmail) {
         }
 
         if (data.message === 'Data saved successfully' && !Array.isArray(data.records)) {
-            throw new Error(
-                'A szerver a mentési ágat futtatta (Data saved), nem a listázást. Code.gs: a doPost() ' +
-                'elején ágazd el getUserRecords-ra (e.parameter.action / e.parameter.records vagy ' +
-                'JSON: action / recordsQuery), majd Deploy → új verzió. Ellenőrizd, hogy a SCRIPT_URL ' +
-                'ugyanahhoz a deploymenthez tartozik, amit szerkesztesz.'
-            );
+            throw new Error('A szerver mentési választ adott listázás helyett. Ellenőrizd a doPost / deploy verziót.');
         }
 
-        const { records, sourceKey } = extractRecordsArray(data);
+        const { records } = extractRecordsArray(data);
 
         allUserRecords = records.map(normalizeRecord);
         renderRecords();
         setRecordsStatus(`Betöltve: ${allUserRecords.length} rekord`);
-        setRecordsDebug({
-            stage: 'fetchUserRecords:success',
-            hint: 'If sourceKey is none but raw shows rows, adjust Apps Script JSON shape or column mapping.',
-            emailCheck: {
-                argumentUserEmail: userEmail,
-                localStorageUserEmail: storedEmail,
-                emailsMatch: !storedEmail || storedEmail === userEmail
-            },
-            requestNote: 'POST ?action=getUserRecords + JSON body (text/plain); token only in body',
-            responseStatus: response.status,
-            responseKeys: Object.keys(data || {}),
-            recordsSourceKey: sourceKey,
-            sourceArrayLength: records.length,
-            normalizedLength: allUserRecords.length,
-            firstRawRows: records.slice(0, 5),
-            firstNormalizedRows: allUserRecords.slice(0, 5),
-            rawResponsePreview: rawText.length > 2500 ? `${rawText.slice(0, 2500)}…` : rawText
-        });
     } catch (error) {
         console.error('Error fetching user records:', error);
         allUserRecords = [];
         renderRecords();
         setRecordsStatus(`Hiba rekordok betöltésekor: ${error.message}`, true);
-        setRecordsDebug({
-            stage: 'fetchUserRecords:error',
-            emailCheck: {
-                argumentUserEmail: userEmail,
-                localStorageUserEmail: storedEmail,
-                emailsMatch: !storedEmail || storedEmail === userEmail
-            },
-            request: {
-                action: 'getUserRecords',
-                email: userEmail
-            },
-            errorMessage: error.message
-        });
     } finally {
         setRecordsLoading(false);
     }
