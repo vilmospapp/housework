@@ -1,5 +1,5 @@
 // Set the Google Apps Script web app URL
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxzTKqpjxkh3YkYxfUf-ijqlFkCSA8NZ5OfLOyuZ7iTdUKMGsfSlxUNVUyzgD4V0yVCGA/exec'
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbya-t80IUm-7xfid0-3ETIJ6eYzvdGWP2bUJTPYdbQZsyFYIX9hxg7NX1U5vqYcw2W5xA/exec'
 ;
 let allUserRecords = [];
 
@@ -152,8 +152,9 @@ async function handleFormSubmit(event) {
             throw new Error('User email not found. Please log in again.');
         }
         
-        // Prepare data for submission
+        // Prepare data for submission (action lets Code.gs doPost route to addTask)
         const data = {
+            action: 'addTask',
             task: task,
             date: date,
             time: time,
